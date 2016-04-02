@@ -53,7 +53,7 @@ def thumb():
     
     response = {}
     url = request.args.get('url')
-    if request.method == 'POST':
+    if request.method == 'GET':
         if url != "":
             response['error'] = 'null'
             response['data'] = {}
@@ -66,9 +66,9 @@ def thumb():
             response['message'] = "Unable to extract thumbnails"
         image = image_dem()
         return render_template('filelisting.html', image=image, title=title, description=description)
-    if request.method == 'GET':
+    if request.method == 'POST':
         #send data to database and return to profile page
-        return render_template(url_for('/'))
+        return render_template('home.html')
 
 @app.route('/api/user/login', methods = ['POST', 'GET'])
 def user_login():
@@ -119,10 +119,16 @@ def user_registration():
     
     
 
-@app.route('/api/user/<int:id_num>/wishlist')
+@app.route('/api/user/<int:id_num>/wishlist', methods=['GET', 'POST'])
 def profile_view(id_num):
     profile = Myprofile.query.get(id_num)
     return render_template('profile_view.html',profile=profile)
+def item_add():
+    profile = Myprofile.query.get(id_num)
+    #send data to database here
+    if request.method == 'POST':
+        
+        return redirect(url_for('profile_view', id_num=profile.id_num))
     
 
 ###
