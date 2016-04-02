@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+
+{%block title%}
+Add a Profile
+{% endblock %}
+
+
+{% block main %}
+<form action="{{ url_for('user_registration') }}" method="post">
+<div class="form-group">
+       Firstname: {{ form.first_name }}<br />
+       Lastname: {{ form.last_name }}<br />    
+       Email: {{ form.email }}<br /> 
+       Password: {{ form.password }} <br /> 
+       <input type="submit" class="btn btn-primary" />     
+       
+</div>
+
+</form> 
+
+{% endblock %}

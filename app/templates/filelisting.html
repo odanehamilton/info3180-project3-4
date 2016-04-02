@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+
+{% block js %}
+{% endblock %}
+
+
+
+{% block main %}
+<h4>Title: {{ title }}</h4>
+<h4>Description: {{ description }}</h4>
+<div class="radio-inline">
+<form action="{{ url_for('item_add') }}">
+{% for img in image %}
+<label class="checkbox-inline"><input type="radio" name="image" value="{{ img }}"><img src="{{ img }}"></img></label><br/>
+
+{% endfor %}
+<input type="submit" value="Submit" class="btn btn-primary">
+</form>
+</div>
+{% endblock %}
