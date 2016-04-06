@@ -31,7 +31,7 @@ def home():
 
 @app.route('/api/thumbnail/process', methods=['POST', 'GET'])
 def thumb():
-    id_num = session[0]
+    id_num = session['id_num']
     data = Myprofile.query.all()
     url1 = request.args.get('url')
     result = requests.get(url1)
@@ -124,7 +124,7 @@ def profile_view(id_num):
     profile = Myprofile.query.get(id_num)
     return render_template('profile_view.html',profile=profile)
 
-
+    if request.method 
 @app.route('/api/user/<int:id_num>/wishlist', methods=['GET', 'POST'])
 def item_add(id_num):
     if request.method == 'POST':

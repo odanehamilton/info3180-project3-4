@@ -31,7 +31,7 @@ def home():
 
 @app.route('/api/thumbnail/process', methods=['POST', 'GET'])
 def thumb():
-    id_num = session[0]
+    id_num = session['id_num']
     data = Myprofile.query.all()
     url1 = request.args.get('url')
     result = requests.get(url1)
@@ -65,7 +65,7 @@ def thumb():
             response = {}
             response['error'] = "1"
             response['data'] = {}
-            response['message'] = "Unable to extract thumbnails"
+        return render_template('filelisting.html', image=image, title=title, description=description, id_num=id+)
         image = image_dem()
         return render_template('filelisting.html', image=image, title=title, description=description, id_num=id_num)
 

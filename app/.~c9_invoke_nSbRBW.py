@@ -31,7 +31,7 @@ def home():
 
 @app.route('/api/thumbnail/process', methods=['POST', 'GET'])
 def thumb():
-    id_num = session[0]
+    id_num = session['i']
     data = Myprofile.query.all()
     url1 = request.args.get('url')
     result = requests.get(url1)

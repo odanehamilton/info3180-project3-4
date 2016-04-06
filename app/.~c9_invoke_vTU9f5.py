@@ -31,7 +31,7 @@ def home():
 
 @app.route('/api/thumbnail/process', methods=['POST', 'GET'])
 def thumb():
-    id_num = session[0]
+    id_num = session['id_num']
     data = Myprofile.query.all()
     url1 = request.args.get('url')
     result = requests.get(url1)
@@ -118,7 +118,7 @@ def user_registration():
                            form=form)
     
     
-
+    profile = Myprofile.query.get(id_num)
 @app.route('/api/user/<int:id_num>/wishlist', methods=['GET', 'POST'])
 def profile_view(id_num):
     profile = Myprofile.query.get(id_num)

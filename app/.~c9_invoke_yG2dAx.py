@@ -31,7 +31,7 @@ def home():
 
 @app.route('/api/thumbnail/process', methods=['POST', 'GET'])
 def thumb():
-    id_num = session[0]
+    id_num = session['id_num']
     data = Myprofile.query.all()
     url1 = request.args.get('url')
     result = requests.get(url1)
@@ -77,7 +77,7 @@ def user_login():
     if request.method == 'POST':
         for each in data:
             if request.form['email'] == each.email and request.form['password'] == each.password:
-                session['logged_in'] = True
+                session[]
                 session['id_num'] = each.id_num
                 return redirect(url_for('profile_view', id_num=each.id_num))
         else:

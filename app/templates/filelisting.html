@@ -7,9 +7,12 @@
 
 
 {% block main %}
-<form action="{{ url_for(item_add) }}" method="POST">
-<h4 name="title">Title: {{ title }}</h4>
-<h4 name="description">Description: {{ description }}</h4>
+{% for item in data %}
+<form action="{{ url_for('item_add', id_num) }}" method="POST"> {% endfor %}
+    <label for="title">Title:</label>
+    <input type="text" name="title" value="{{ title }}" class="form-control"><br/>
+    <label for="title">Description:</label>
+    <input type="text" name="description" value="{{ description }}" class="form-control"><br>
 <div class="radio-inline">
 {% for img in image %}
 <label class="checkbox-inline"><input type="radio" name="image" value="{{ img }}"><img src="{{ img }}"></img></label><br/>
