@@ -8,8 +8,8 @@ class Myprofile(db.Model):
 
 
 class Mylist (db.Model):
-    id_num = db.Column(db.Integer, primary_key=True, unique = True)
     image_id = db.Column(db.Integer, primary_key=True, unique = True, autoincrement=True)
+    id_num = db.Column(db.Integer)
     url = db.Column(db.String(200))
     title = db.Column(db.String(200))
     description = db.Column(db.String(200))

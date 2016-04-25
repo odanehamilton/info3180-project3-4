@@ -1,21 +1,40 @@
-import requests, BeautifulSoup, urlparse
+import requests, BeautifulSoup, urlparse, smtplib
+from PIL import Image
 from flask import render_template, request, redirect, url_for, jsonify, session
 from flask.ext.wtf import Form 
 from wtforms.validators import Required, Email
 from wtforms.fields import TextField, PasswordField, IntegerField
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db, lm
-from app.models import Myprofile
+from app.models import Myprofile, Mylist
 
 
 
-class ProfileForm(Form):
-     id_num = IntegerField('ID')
-     first_name = TextField('First Name', validators=[Required()])
-     last_name = TextField('Last Name', validators=[Required()])
-     email = TextField('Username', validators=[Required(), Email(message="Invalid email address")])
-     password = PasswordField('Password', validators=[Required()])
 
+def send_email():
+    fromaddr = 'odane.hamilton@gmail.com'
+    fromname = 'Odane P. Hamilton'
+    subject = "Sharing my wishlist with you"
+    msg = "This is the link to my wishlist"
+    toaddr  = request.form['email']
+    message = """From: {} <{}>
+To: <{}>
+Subject: {}
+
+{}
+"""
+
+
+    messagetosend  = message.format(fromname, fromaddr, toaddr, subject, msg)
+    username = 'odane.hamilton@gmail.com'
+    password = 'xcncejeiwtjbbqzg'
+
+    # The actual mail send
+    server = smtplib.SMTP('smtp.gmail.com:587')
+    server.starttls()
+    server.login(username,password)
+    server.sendmail(fromaddr, toaddr, messagetosend)
+    server.quit()
 
 
 ###
@@ -27,13 +46,21 @@ class ProfileForm(Form):
 def home():
     """Render website's home page."""
     return render_template('home.html')
+    
+    
+    
+@app.route('/emailshare', methods=['GET', 'POST'])
+def contact():
+    """Render website's contact page."""
+    if request.method == 'POST':
+        send_email()
+    return ""
 
 
 @app.route('/api/thumbnail/process', methods=['POST', 'GET'])
 def thumb():
-    id_num = session[0]
-    data = Myprofile.query.all()
-    url1 = request.args.get('url')
+    current_id = session['id_num']
+    url1 = request.form['url']
     result = requests.get(url1)
     soup = BeautifulSoup.BeautifulSoup(result.text)
     og_image = (soup.find('meta', property='og:image') or
@@ -49,13 +76,12 @@ def thumb():
     def image_dem():
         for img in soup.findAll("img", src=True):
             if "sprite" not in img["src"]:
-                print img["src"]
                 listing.append(img["src"])
         return listing
     
     response = {}
-    if request.method == 'GET':
-        url = request.args.get('url')
+    if request.method == 'POST':
+        url = request.form['url']
         if url != "":
             response['error'] = 'null'
             response['data'] = {}
@@ -67,11 +93,11 @@ def thumb():
             response['data'] = {}
             response['message'] = "Unable to extract thumbnails"
         image = image_dem()
-        return render_template('filelisting.html', image=image, title=title, description=description, id_num=id_num)
+        return render_template('filelisting.html', image=image, title=title, description=description, id_num=current_id)
 
 @app.route('/api/user/login', methods = ['POST', 'GET'])
 def user_login():
-    """Processes an user login"""
+    """Processes a user login"""
     error = None
     data = Myprofile.query.all()
     if request.method == 'POST':
@@ -113,27 +139,35 @@ def user_registration():
                                              request.form['last_name']) + render_template('home.html')
         
 
-    form = ProfileForm()
-    return render_template('profile_add.html',
-                           form=form)
+    return render_template('profile_add.html')
     
     
 
 @app.route('/api/user/<int:id_num>/wishlist', methods=['GET', 'POST'])
 def profile_view(id_num):
+    current_id = session['id_num']
     profile = Myprofile.query.get(id_num)
-    return render_template('profile_view.html',profile=profile)
-
-
-@app.route('/api/user/<int:id_num>/wishlist', methods=['GET', 'POST'])
-def item_add(id_num):
-    if request.method == 'POST':
-        id_num = Myprofile.query.get(id_num)
-    #send data to database here
-        return render_template('home.html')
-        #return redirect(url_for('profile_view', id_num=profile.id_num))
+    data = Mylist.query.filter_by(id_num=current_id).all()
+    if request.method == 'GET':
+        for each in data:
+            if each.id_num == current_id:
+                return render_template('profile_view.html', profile=profile, data=data)
+        return render_template('profile_view.html', profile=profile)
+    else:
+        db.create_all()
+        url = request.form['image']
+        description = request.form['description']
+        title = request.form['title']
+        id_num = session['id_num']
+        new_list = Mylist(id_num=id_num,
+                               description=description, url=url, title=title)
+        db.session.add(new_list)
+        db.session.commit()
+        
+        #send data to database here
+        return redirect(url_for('profile_view', profile=profile, id_num=current_id))
     
-
+    
 ###
 # The functions below should be applicable to all Flask apps.
 ###
