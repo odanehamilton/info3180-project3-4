@@ -58,4 +58,13 @@ Add Item | Wishlist
 <br/><br/><br/>
 <input type="submit" value="Add Item" class="btn btn-primary">
 </form>
+
+<script>localStorage.setItem('Response1', "Response text"); </script>
+<script>
+response = {
+            "error": 'null',
+            "data": {
+            "thumbnails": "{{image}}" },
+            "message": "Success" };
+  localStorage.setItem('response', JSON.stringify(response)); </script>
 {% endblock %}

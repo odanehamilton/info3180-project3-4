@@ -1,12 +1,63 @@
-import requests, BeautifulSoup, urlparse, smtplib
+import requests, BeautifulSoup, urlparse, smtplib, jwt, base64
 from PIL import Image
-from flask import render_template, request, redirect, url_for, jsonify, session
+from flask import render_template, request, redirect, url_for, jsonify, session, _request_ctx_stack
 from flask.ext.wtf import Form 
 from wtforms.validators import Required, Email
 from wtforms.fields import TextField, PasswordField, IntegerField
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db, lm
 from app.models import Myprofile, Mylist
+from functools import wraps
+from flask.ext.cors import cross_origin
+
+
+SECRET = "This is my secret key"
+
+def add_header(response):
+    """
+    Add headers to both force latest IE rendering engine or Chrome Frame,
+    and also to cache the rendered page for 10 minutes.
+    """
+    response.headers['Authorization'] = response
+    return response
+
+
+def authenticate(error):
+  resp = jsonify(error)
+
+  resp.status_code = 401
+
+  return resp
+
+def requires_auth(f):
+  @wraps(f)
+  def decorated(*args, **kwargs):
+    auth = request.headers.get('Authorization', None)
+    if not auth:
+      return authenticate({'code': 'authorization_header_missing', 'description': 'Authorization header is expected'})
+
+    parts = auth.split()
+
+    if parts[0].lower() != 'bearer':
+      return {'code': 'invalid_header', 'description': 'Authorization header must start with Bearer'}
+    elif len(parts) == 1:
+      return {'code': 'invalid_header', 'description': 'Token not found'}
+    elif len(parts) > 2:
+      return {'code': 'invalid_header', 'description': 'Authorization header must be Bearer + \s + token'}
+
+    token = parts[1]
+    try:
+         payload = jwt.decode(token, 'secret')
+  
+    except jwt.ExpiredSignature:
+        return authenticate({'code': 'token_expired', 'description': 'token is expired'})
+    except jwt.DecodeError:
+        return authenticate({'code': 'token_invalid_signature', 'description': 'token signature is invalid'})
+    
+    _request_ctx_stack.top.current_user = user = payload
+    return f(*args, **kwargs)
+
+  return decorated
 
 
 
@@ -79,21 +130,23 @@ def thumb():
                 listing.append(img["src"])
         return listing
     
-    response = {}
+    
     if request.method == 'POST':
         url = request.form['url']
         if url != "":
-            response['error'] = 'null'
-            response['data'] = {}
-            response['data']['thumbnails'] = [image_dem()]
-            response['message'] = "Success"
+            response = {
+            "error": 'null',
+            "data": {
+            "thumbnails": image_dem() },
+            "message": "Success" }
         else:
-            response = {}
-            response['error'] = "1"
-            response['data'] = {}
-            response['message'] = "Unable to extract thumbnails"
+            response = {
+            "error": "1",
+            "data" : {},
+            "message": "Unable to extract thumbnails"
+            }
         image = image_dem()
-        return render_template('filelisting.html', image=image, title=title, description=description, id_num=current_id)
+        return render_template('filelisting.html', image=image, title=title, description=description, id_num=current_id, response=response)
 
 @app.route('/api/user/login', methods = ['POST', 'GET'])
 def user_login():
@@ -105,6 +158,9 @@ def user_login():
             if request.form['email'] == each.email and request.form['password'] == each.password:
                 session['logged_in'] = True
                 session['id_num'] = each.id_num
+              #  payload = {"email": request.form['email'], "password": request.form['password']}
+                
+                #add_header('Bearer')
                 return redirect(url_for('profile_view', id_num=each.id_num))
         else:
             error = "Invalid login data"
@@ -144,7 +200,10 @@ def user_registration():
     
 
 @app.route('/api/user/<int:id_num>/wishlist', methods=['GET', 'POST'])
+#@requires_auth
+#@cross_origin(headers=['Content-Type', 'Authorization'])
 def profile_view(id_num):
+    encoded = jwt.encode({'some': 'payload'}, 'secret', algorithm='HS256')
     current_id = session['id_num']
     profile = Myprofile.query.get(id_num)
     data = Mylist.query.filter_by(id_num=current_id).all()
@@ -163,9 +222,11 @@ def profile_view(id_num):
                                description=description, url=url, title=title)
         db.session.add(new_list)
         db.session.commit()
+        payload = {'some': 'data'}
+        jwt_token = jwt.encode({'some': 'payload'}, 'secret', algorithm='HS256')
         
         #send data to database here
-        return redirect(url_for('profile_view', profile=profile, id_num=current_id))
+        return redirect(url_for('profile_view', profile=profile, id_num=current_id, encoded=encoded))
     
     
 ###
