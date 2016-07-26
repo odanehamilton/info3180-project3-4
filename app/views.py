@@ -1,5 +1,5 @@
 import requests, BeautifulSoup, urlparse, smtplib, jwt, base64
-from PIL import Image
+#from PIL import Image
 from flask import render_template, request, redirect, url_for, jsonify, session, _request_ctx_stack
 from flask_wtf import Form 
 from wtforms import TextField, PasswordField, IntegerField
