@@ -2,14 +2,18 @@
 # Flask
 # ----------------------
 flask
-Flask-WTF
-Flask-SQLAlchemy
+Flask_WTF
+Flask_SQLAlchemy
 Flask-Migrate
-Flask-Login
+Flask_Login
+Flask_OpenID
 psycopg2
 PyJWT
 flask-cors
-
+beautifulsoup
+jwt
+image
+pillow
 
 # ----------------------
 # Testing

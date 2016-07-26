@@ -1,14 +1,14 @@
 import requests, BeautifulSoup, urlparse, smtplib, jwt, base64
 from PIL import Image
 from flask import render_template, request, redirect, url_for, jsonify, session, _request_ctx_stack
-from flask.ext.wtf import Form 
+from flask_wtf import Form 
+from wtforms import TextField, PasswordField, IntegerField
 from wtforms.validators import Required, Email
-from wtforms.fields import TextField, PasswordField, IntegerField
-from flask.ext.login import login_user, logout_user, current_user, login_required
+from flask_login import login_user, logout_user, current_user, login_required
 from app import app, db, lm
 from app.models import Myprofile, Mylist
 from functools import wraps
-from flask.ext.cors import cross_origin
+from flask_cors import cross_origin
 
 
 SECRET = "This is my secret key"

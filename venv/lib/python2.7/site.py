@@ -65,10 +65,7 @@ ImportError exception, it is silently ignored.
 
 import sys
 import os
-try:
-    import __builtin__ as builtins
-except ImportError:
-    import builtins
+import __builtin__
 try:
     set
 except NameError:
@@ -83,7 +80,6 @@ ENABLE_USER_SITE = None
 USER_SITE = None
 USER_BASE = None
 
-_is_64bit = (getattr(sys, 'maxsize', None) or getattr(sys, 'maxint')) > 2**32
 _is_pypy = hasattr(sys, 'pypy_version_info')
 _is_jython = sys.platform[:4] == 'java'
 if _is_jython:
@@ -170,7 +166,7 @@ def addpackage(sitedir, name, known_paths):
             if line.startswith("#"):
                 continue
             if line.startswith("import"):
-                exec(line)
+                exec line
                 continue
             line = line.rstrip()
             dir, dircase = makepath(sitedir, line)
@@ -237,12 +233,9 @@ def addsitepackages(known_paths, sys_prefix=sys.prefix, exec_prefix=sys.exec_pre
                             os.path.join(prefix, "lib", "site-python"),
                             os.path.join(prefix, "python" + sys.version[:3], "lib-dynload")]
                 lib64_dir = os.path.join(prefix, "lib64", "python" + sys.version[:3], "site-packages")
-                if (os.path.exists(lib64_dir) and
+                if (os.path.exists(lib64_dir) and 
                     os.path.realpath(lib64_dir) not in [os.path.realpath(p) for p in sitedirs]):
-                    if _is_64bit:
-                        sitedirs.insert(0, lib64_dir)
-                    else:
-                        sitedirs.append(lib64_dir)
+                    sitedirs.append(lib64_dir)
                 try:
                     # sys.getobjects only available in --with-pydebug build
                     sys.getobjects
@@ -250,14 +243,9 @@ def addsitepackages(known_paths, sys_prefix=sys.prefix, exec_prefix=sys.exec_pre
                 except AttributeError:
                     pass
                 # Debian-specific dist-packages directories:
-                if sys.version[0] == '2':
-                    sitedirs.append(os.path.join(prefix, "lib",
-                                                 "python" + sys.version[:3],
-                                                 "dist-packages"))
-                else:
-                    sitedirs.append(os.path.join(prefix, "lib",
-                                                 "python" + sys.version[0],
-                                                 "dist-packages"))
+                sitedirs.append(os.path.join(prefix, "lib",
+                                             "python" + sys.version[:3],
+                                             "dist-packages"))
                 sitedirs.append(os.path.join(prefix, "local/lib",
                                              "python" + sys.version[:3],
                                              "dist-packages"))
@@ -401,8 +389,8 @@ def setquit():
             except:
                 pass
             raise SystemExit(code)
-    builtins.quit = Quitter('quit')
-    builtins.exit = Quitter('exit')
+    __builtin__.quit = Quitter('quit')
+    __builtin__.exit = Quitter('exit')
 
 
 class _Printer(object):
@@ -426,7 +414,7 @@ class _Printer(object):
             for filename in self.__files:
                 filename = os.path.join(dir, filename)
                 try:
-                    fp = open(filename, "rU")
+                    fp = file(filename, "rU")
                     data = fp.read()
                     fp.close()
                     break
@@ -453,17 +441,14 @@ class _Printer(object):
         while 1:
             try:
                 for i in range(lineno, lineno + self.MAXLINES):
-                    print(self.__lines[i])
+                    print self.__lines[i]
             except IndexError:
                 break
             else:
                 lineno += self.MAXLINES
                 key = None
                 while key is None:
-                    try:
-                        key = raw_input(prompt)
-                    except NameError:
-                        key = input(prompt)
+                    key = raw_input(prompt)
                     if key not in ('', 'q'):
                         key = None
                 if key == 'q':
@@ -471,21 +456,21 @@ class _Printer(object):
 
 def setcopyright():
     """Set 'copyright' and 'credits' in __builtin__"""
-    builtins.copyright = _Printer("copyright", sys.copyright)
+    __builtin__.copyright = _Printer("copyright", sys.copyright)
     if _is_jython:
-        builtins.credits = _Printer(
+        __builtin__.credits = _Printer(
             "credits",
             "Jython is maintained by the Jython developers (www.jython.org).")
     elif _is_pypy:
-        builtins.credits = _Printer(
+        __builtin__.credits = _Printer(
             "credits",
-            "PyPy is maintained by the PyPy developers: http://pypy.org/")
+            "PyPy is maintained by the PyPy developers: http://codespeak.net/pypy")
     else:
-        builtins.credits = _Printer("credits", """\
+        __builtin__.credits = _Printer("credits", """\
     Thanks to CWI, CNRI, BeOpen.com, Zope Corporation and a cast of thousands
     for supporting Python development.  See www.python.org for more information.""")
     here = os.path.dirname(os.__file__)
-    builtins.license = _Printer(
+    __builtin__.license = _Printer(
         "license", "See http://www.python.org/%.3s/license.html" % sys.version,
         ["LICENSE.txt", "LICENSE"],
         [os.path.join(here, os.pardir), here, os.curdir])
@@ -505,7 +490,7 @@ class _Helper(object):
         return pydoc.help(*args, **kwds)
 
 def sethelper():
-    builtins.help = _Helper()
+    __builtin__.help = _Helper()
 
 def aliasmbcs():
     """On Windows, some default encodings are not provided by Python,
@@ -557,20 +542,15 @@ def virtual_install_main_packages():
     hardcoded_relative_dirs = []
     if sys.path[0] == '':
         pos += 1
-    if _is_jython:
+    if sys.platform == 'win32':
+        paths = [os.path.join(sys.real_prefix, 'Lib'), os.path.join(sys.real_prefix, 'DLLs')]
+    elif _is_jython:
         paths = [os.path.join(sys.real_prefix, 'Lib')]
     elif _is_pypy:
-        if sys.version_info > (3, 2):
-            cpyver = '%d' % sys.version_info[0]
-        elif sys.pypy_version_info >= (1, 5):
-            cpyver = '%d.%d' % sys.version_info[:2]
-        else:
-            cpyver = '%d.%d.%d' % sys.version_info[:3]
+        cpyver = '%d.%d.%d' % sys.version_info[:3]
         paths = [os.path.join(sys.real_prefix, 'lib_pypy'),
+                 os.path.join(sys.real_prefix, 'lib-python', 'modified-%s' % cpyver),
                  os.path.join(sys.real_prefix, 'lib-python', cpyver)]
-        if sys.pypy_version_info < (1, 9):
-            paths.insert(1, os.path.join(sys.real_prefix,
-                                         'lib-python', 'modified-%s' % cpyver))
         hardcoded_relative_dirs = paths[:] # for the special 'darwin' case below
         #
         # This is hardcoded in the Python executable, but relative to sys.prefix:
@@ -578,30 +558,15 @@ def virtual_install_main_packages():
             plat_path = os.path.join(path, 'plat-%s' % sys.platform)
             if os.path.exists(plat_path):
                 paths.append(plat_path)
-    elif sys.platform == 'win32':
-        paths = [os.path.join(sys.real_prefix, 'Lib'), os.path.join(sys.real_prefix, 'DLLs')]
     else:
         paths = [os.path.join(sys.real_prefix, 'lib', 'python'+sys.version[:3])]
         hardcoded_relative_dirs = paths[:] # for the special 'darwin' case below
         lib64_path = os.path.join(sys.real_prefix, 'lib64', 'python'+sys.version[:3])
         if os.path.exists(lib64_path):
-            if _is_64bit:
-                paths.insert(0, lib64_path)
-            else:
-                paths.append(lib64_path)
-        # This is hardcoded in the Python executable, but relative to
-        # sys.prefix.  Debian change: we need to add the multiarch triplet
-        # here, which is where the real stuff lives.  As per PEP 421, in
-        # Python 3.3+, this lives in sys.implementation, while in Python 2.7
-        # it lives in sys.
-        try:
-            arch = getattr(sys, 'implementation', sys)._multiarch
-        except AttributeError:
-            # This is a non-multiarch aware Python.  Fallback to the old way.
-            arch = sys.platform
-        plat_path = os.path.join(sys.real_prefix, 'lib',
-                                 'python'+sys.version[:3],
-                                 'plat-%s' % arch)
+            paths.append(lib64_path)
+        # This is hardcoded in the Python executable, but relative to sys.prefix:
+        plat_path = os.path.join(sys.real_prefix, 'lib', 'python'+sys.version[:3],
+                                 'plat-%s' % sys.platform)
         if os.path.exists(plat_path):
             paths.append(plat_path)
     # This is hardcoded in the Python executable, but
@@ -631,14 +596,14 @@ def force_global_eggs_after_local_site_packages():
     maintains the "least surprise" result that packages in the
     virtualenv always mask global packages, never the other way
     around.
-
+    
     """
     egginsert = getattr(sys, '__egginsert', 0)
     for i, path in enumerate(sys.path):
         if i > egginsert and path.startswith(sys.prefix):
             egginsert = i
     sys.__egginsert = egginsert + 1
-
+    
 def virtual_addsitepackages(known_paths):
     force_global_eggs_after_local_site_packages()
     return addsitepackages(known_paths, sys_prefix=sys.real_prefix)
@@ -719,18 +684,18 @@ def _script():
     """
     args = sys.argv[1:]
     if not args:
-        print("sys.path = [")
+        print "sys.path = ["
         for dir in sys.path:
-            print("    %r," % (dir,))
-        print("]")
+            print "    %r," % (dir,)
+        print "]"
         def exists(path):
             if os.path.isdir(path):
                 return "exists"
             else:
                 return "doesn't exist"
-        print("USER_BASE: %r (%s)" % (USER_BASE, exists(USER_BASE)))
-        print("USER_SITE: %r (%s)" % (USER_SITE, exists(USER_BASE)))
-        print("ENABLE_USER_SITE: %r" %  ENABLE_USER_SITE)
+        print "USER_BASE: %r (%s)" % (USER_BASE, exists(USER_BASE))
+        print "USER_SITE: %r (%s)" % (USER_SITE, exists(USER_BASE))
+        print "ENABLE_USER_SITE: %r" %  ENABLE_USER_SITE
         sys.exit(0)
 
     buffer = []
@@ -740,7 +705,7 @@ def _script():
         buffer.append(USER_SITE)
 
     if buffer:
-        print(os.pathsep.join(buffer))
+        print os.pathsep.join(buffer)
         if ENABLE_USER_SITE:
             sys.exit(0)
         elif ENABLE_USER_SITE is False:
@@ -751,7 +716,7 @@ def _script():
             sys.exit(3)
     else:
         import textwrap
-        print(textwrap.dedent(help % (sys.argv[0], os.pathsep)))
+        print textwrap.dedent(help % (sys.argv[0], os.pathsep))
         sys.exit(10)
 
 if __name__ == '__main__':
